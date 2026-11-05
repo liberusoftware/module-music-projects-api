@@ -1,25 +1,13 @@
-# Liberu Music: Projects and Sessions — API
+# Music Projects API
 
-> Documentation-only placeholder for the Liberu Music api module.
+In-development PHP 8.5 / Laravel 13 adapter for the Projects core owner. Installing the package does not enable its endpoints; enable the module explicitly through the host module manager and enable `music-projects` separately. Domain persistence, policies and portable manifest verification remain in core. No migrations or domain models live in this adapter.
 
-## Status
+The contract in [openapi/projects.json](openapi/projects.json) describes the implemented read and import-preview endpoints under `/api/v1/music-projects/workspaces/{workspace}`. A host-issued Sanctum bearer token requires `music.projects.read` or, for preview, `music.projects.preview`. Token ability alone never grants owner permission. Stateful browser requests require the host's Sanctum and CSRF configuration; the package does not publish a token-issuance endpoint.
 
-Repository reserved for `module-music-projects-api`. No module implementation, Composer package, endpoints or UI components are provided yet.
+Read current sessions with `GET /sessions`, a project with `GET /sessions/{uuid}`, history with `GET /sessions/{uuid}/revisions`, or a portable backup with `GET /sessions/{uuid}/manifest`. `version` selects a historical revision. Collections accept `page[size]` (1–100) and opaque `page[after]` cursors returned in `meta.next_cursor`; keep the same workspace/collection/filter when reusing them. `templates=1` and `templates=0` filter the catalogue. Collections return lightweight metadata without session documents or asset references; full reads and exports independently revalidate media access. Responses use `{data, meta}`; all include a request ID and prevent shared caching.
 
-## Planned scope
+`POST /sessions/{uuid}/import-preview` accepts `{"manifest":"<portable JSON string>"}`. It checks the destination write policy, supported schemas, checksum and referenced media, returns a summary and never writes a destination or grants permission for later import. Unsupported schemas produce 422; malformed portable JSON produces 400. Missing credentials produce 401, missing scope/policy 403, unavailable resources 404, rate limits 429 (with Retry-After), and disabled core 503. Errors use redacted Problem Details, including field violations and a request ID. Unexpected errors remain 500 without traces or internal messages. The default authenticated limit is 60 requests per minute.
 
-See the [module plan](https://github.com/liberusoftware/documentation/blob/main/projects/music/api/projects.md) and [domain specification](https://github.com/liberusoftware/documentation/blob/main/projects/music/features/projects.md) for requirements and acceptance criteria.
+Not yet delivered: HTTP writes/recovery/import confirmation, conditional writes/idempotency headers, revision stream transport, contract examples/registry integration, quotas, async operation APIs and complete supported-runtime acceptance. Capability discovery reports these unavailable. Audio execution, recording/device control and sample scheduling require a compatible local runtime. This package is not a completed implementation of host issue #7.
 
-## Architecture
-
-Laravel coordinates persisted metadata, policy and asynchronous work. Real-time audio, device access and DSP belong to a separately specified local runtime; PHP and network requests must never run in the audio callback. Shared identity, authorization and storage follow the [foundation adoption plan](https://github.com/liberusoftware/documentation/blob/main/projects/music/FOUNDATION.md).
-
-## Related repositories
-
-- [Music application](https://github.com/liberusoftware/music-daw-laravel)
-- [Product documentation](https://github.com/liberusoftware/documentation/blob/main/projects/music/README.md)
-- [Delivery plan](https://github.com/liberusoftware/documentation/blob/main/projects/music/DEVELOPMENT.md)
-
-## Contributing
-
-Implementation will follow the documented contracts and delivery gates. This initial repository contains documentation only.
+Run `composer install`, `composer test` and `composer test:coverage` from this directory. The core dependency accepts its development branch until a compatible version is published; the explicit Git repository resolves that branch without installing a PHP host.
